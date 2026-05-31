@@ -421,6 +421,13 @@ This is the magic step.  Tailscale will request a real, browser-trusted HTTPS
 certificate for your `*.tail-XXXX.ts.net` name from Let's Encrypt, and proxy
 incoming HTTPS traffic to the local HTTP webserver.
 
+**On a Raspberry Pi installed via the one-liner, you can do this from the
+helper instead** — `sudo ts890s-config` → option **8** (*"Set up Tailscale
+HTTPS proxy"*).  The helper reads your configured ports, runs both `tailscale
+serve` commands, and prints the URL to bookmark.
+
+Doing it by hand (any platform):
+
 ```bash
 sudo tailscale serve --bg --https=443 / http://localhost:8080
 sudo tailscale serve --bg --https=443 /ws http://localhost:8073
@@ -431,6 +438,13 @@ endpoint that carries live state and audio.
 
 The first time you run these, Tailscale will spend 30–60 seconds requesting
 the certificate.  Subsequent runs are instant.
+
+> ⚠️ **Common gotcha:** simply being on the tailnet isn't enough.  If you
+> visit `http://<pi-tailnet-ip>:8080` or `http://<pi-name>.tail-XXX.ts.net:8080`
+> the browser will mark the page as **Not Secure** because it's plain HTTP —
+> microphone access stays disabled.  You must hit the **`https://`** URL on
+> port 443 (no port in URL), which requires `tailscale serve --https` to be
+> running.  The `ts890s-config` option above takes care of this in one step.
 
 **A.5 Confirm the serve config**
 
