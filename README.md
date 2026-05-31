@@ -220,7 +220,13 @@ After install:
   ```bash
   sudo journalctl -u ts890s-webserver -f
   ```
-- Uninstall:
+- **Uninstall (one-liner)** — mirrors the install pattern, removes the
+  systemd service + binaries + config + the server's saved radio profile:
+  ```bash
+  curl -fsSL https://github.com/lmacc/Kenwood-TS-890s-Web-Console/releases/latest/download/uninstall-pi.sh | sudo bash
+  ```
+  Or, if you'd rather use the local copy of the installer without re-downloading
+  anything:
   ```bash
   sudo /opt/ts890s-webserver/install-rpi.sh --uninstall
   ```
