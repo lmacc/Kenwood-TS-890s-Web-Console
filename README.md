@@ -1,1 +1,611 @@
-# Kenwood-TS-890s-Web-Console
+# Kenwood TS-890S Web Console
+
+[![Build status](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Flmacc%2FKenwood-TS-890s-Web-Console%2Fmain%2F.github%2Fci-badge.json)](https://github.com/lmacc/Kenwood-TS-890s-Web-Console/releases)
+[![Latest release](https://img.shields.io/github/v/release/lmacc/Kenwood-TS-890s-Web-Console?sort=semver&display_name=tag)](https://github.com/lmacc/Kenwood-TS-890s-Web-Console/releases/latest)
+[![Total downloads](https://img.shields.io/github/downloads/lmacc/Kenwood-TS-890s-Web-Console/total)](https://github.com/lmacc/Kenwood-TS-890s-Web-Console/releases)
+[![Licence: GPL-3.0](https://img.shields.io/badge/licence-GPL--3.0-blue)](LICENSE)
+![Platforms](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS%20%7C%20Raspberry%20Pi-lightgrey)
+
+A free, open-source browser-based remote control for the **Kenwood TS-890S** HF
+transceiver.  Run a small native server next to (or on) the radio; control the
+rig from any phone, tablet, or computer with a web browser — over the LAN, or
+from anywhere in the world via Tailscale.
+
+![TS-890S Web Console screenshot](docs/screenshot.png)
+
+---
+
+## ⚠️ Disclaimer — please read before installing
+
+This software is provided **as-is and free of charge, in good faith** under the
+GNU General Public License v3.0.  By installing or running it you accept that:
+
+- **The author accepts no liability** for any damage, malfunction, loss of
+  data, loss of operating privilege, or any other harm — direct or indirect —
+  to your **radio, computer, network equipment, antenna system, or any other
+  property** arising from the use, misuse, or inability to use this software.
+- **You alone are legally responsible** for any transmissions made via this
+  software.  As the licensed operator you must ensure all output is within
+  the band, mode, and power limits permitted by your country's amateur radio
+  regulations, and that the callsign on the air is yours.
+- **No warranty, express or implied**, is offered.  See sections 15–17 of the
+  [GPL-3.0 LICENCE](LICENSE) for the full legal text.
+- This is a hobby project written by an amateur for amateurs.  It is **not
+  certified**, **not endorsed by JVCKenwood**, and is independent of any
+  commercial product.
+
+If you are not comfortable with the above, please do not install or run this
+software.
+
+---
+
+## Architecture (remote operation via Tailscale)
+
+```mermaid
+flowchart TD
+    subgraph Remote["🌍 Anywhere with internet"]
+        Phone["📱 iPhone / Android<br/>(Tailscale app)"]
+        Laptop["💻 Laptop<br/>(Tailscale client)"]
+        Tablet["📱 iPad / Tablet<br/>(Tailscale app)"]
+    end
+
+    subgraph Mesh["🔒 Tailnet — WireGuard end-to-end encrypted overlay"]
+        TS{"Tailscale<br/>MagicDNS + HTTPS"}
+    end
+
+    subgraph Home["🏠 Your shack / home network"]
+        Server["🖥️ PC or Raspberry Pi<br/>running ts890s-webserver<br/>(also has Tailscale)"]
+        Radio["📻 Kenwood TS-890S<br/>KNS enabled"]
+    end
+
+    Phone -- "wss://radio.tail-abc.ts.net" --> TS
+    Laptop -- "wss://radio.tail-abc.ts.net" --> TS
+    Tablet -- "wss://radio.tail-abc.ts.net" --> TS
+
+    TS -- "tailnet IP<br/>(only visible to logged-in devices)" --> Server
+
+    Server -- "LAN<br/>CAT (TCP 60000)<br/>Audio (UDP 60001/60002)" --> Radio
+```
+
+**Key points:**
+
+1. The webserver runs on a PC or Raspberry Pi physically connected (via
+   Ethernet) to the same LAN as the radio.  It talks to the radio over
+   Kenwood's standard **KNS (Kenwood Network Command System)** — TCP for CAT
+   commands, UDP-RTP for two-way audio.
+2. Tailscale provides a private encrypted overlay network: every device you
+   install Tailscale on gets a virtual IP, and they can all reach each other
+   regardless of where they are or what NAT they're behind.  Nothing is
+   exposed to the public internet.
+3. Tailscale also provides a real public-CA HTTPS certificate for your
+   server's `*.tail-XXXX.ts.net` name — required so phones can use the
+   microphone (browsers refuse `getUserMedia` over plain HTTP).
+4. Your home router needs **no port forwarding**, no dynamic DNS service, no
+   inbound firewall changes.  Tailscale handles NAT traversal entirely.
+
+---
+
+## What it does
+
+- Live **bandscope and waterfall** at ~30 fps over LAN, matching the radio's
+  own LCD update rate.
+- All the main soft keys you'd expect: S.Mode, Span (5/10/20/30/50/100/200/500
+  kHz), Shift, Ref.Level, ATT, Pause.
+- Filter widget with **drag-to-adjust passband edges** (SH/SL) live on the
+  bandscope.
+- VFO A + VFO B with per-digit mouse-wheel tuning, A↔B swap, Split mode with
+  quick offset buttons (-50k…+50k), TX-side highlighting on the scope.
+- **Full duplex RX/TX audio over the LAN** via the radio's built-in VoIP
+  function.  Mic and speakers chosen from any device the browser supports.
+- Band buttons that recall the radio's stored mode-per-band (BU command).
+- Power on/off toggle (PS command) with network-standby wake-up.
+- Mobile-responsive UI with a big floating-action PTT button.
+- Server-side persistent radio profile — connect once from any device,
+  and from then on every other browser walks in to an already-connected rig.
+
+---
+
+## Quick install per platform
+
+### Windows 10 / 11 (x64)
+
+1. Go to the [latest release](https://github.com/lmacc/Kenwood-TS-890s-Web-Console/releases/latest)
+   on this page and download **`ts890s-webserver-windows-x64.zip`**.
+2. Extract the ZIP anywhere — for example `C:\Users\YourName\Documents\TS890S-Webserver\`.
+   Right-click → *Extract All…* → choose a folder → Extract.
+3. Open the extracted folder.  You'll see:
+   - `890-server.exe` — the actual webserver
+   - `ts890s-launcher.exe` — a GUI launcher (recommended for first-time setup)
+   - `start.bat` — a bare console launcher
+   - `web\` — the browser UI files
+   - a number of `Qt6*.dll` files and a `platforms\` subfolder (the Qt runtime)
+4. Choose one of:
+   - **GUI launcher (recommended):** double-click **`ts890s-launcher.exe`**.
+     A dark settings window opens.  Fill in your radio's IP address (visible
+     on the radio's KNS menu screen), KNS username, KNS password, tick
+     "Admin" for TX control, click **Start Server**.  The launcher remembers
+     your settings between runs.
+   - **Console quick-launch:** double-click **`start.bat`**.  A black command
+     window appears with log output, and your default browser opens to
+     `http://localhost:8080`.  Enter the radio's IP into the on-screen
+     Connect dialog the first time.
+
+   First time only: Windows SmartScreen will show *"Windows protected your
+   PC"*.  Click *More info* → *Run anyway*.  This is because the binary is
+   not code-signed (signing certificates cost $200-500/year — not realistic
+   for a hobby project).
+
+5. On the same PC: open `http://localhost:8080` in any browser if it doesn't
+   open automatically.
+6. From another device on the same LAN: open `http://<your-pc-ip>:8080`
+   (find the PC's IP with `ipconfig` in a Command Prompt).
+
+To use the radio from anywhere — phone, work laptop, holiday flat — install
+**Tailscale** as well (see the Tailscale section below).
+
+### macOS (Apple Silicon — and Intel via Rosetta)
+
+1. Download **`ts890s-webserver-macos.zip`** from the
+   [latest release](https://github.com/lmacc/Kenwood-TS-890s-Web-Console/releases/latest).
+2. Extract by double-clicking the ZIP — macOS will produce a folder containing
+   `890-server`, `web/`, `start.command`, `ts890s-launcher`, and the bundled
+   `Qt frameworks`.
+3. **First time only — defeat Gatekeeper:** Right-click on either
+   `ts890s-launcher` or `start.command` → choose **Open** from the menu (not
+   double-click).  macOS will say *"…cannot be opened because it is from an
+   unidentified developer."*  Click **Open** again on the dialog that follows.
+   After this one-time approval, macOS remembers it for that file.
+4. From then on, double-click `ts890s-launcher` (GUI) or `start.command`
+   (Terminal-based) to start the server.
+5. Browser opens to `http://localhost:8080` and the on-screen Connect dialog
+   takes the radio's IP / KNS credentials.
+
+### Linux (x64 desktop) — AppImage
+
+The Linux build is shipped as a single AppImage that bundles all the Qt
+runtime libraries, so it runs on any reasonably modern x64 distro (Ubuntu
+22.04+, Fedora 36+, Debian 12+, Mint, Arch, etc.) with no further dependencies.
+
+1. Download **`ts890s-webserver-linux-x64.AppImage`** from the
+   [latest release](https://github.com/lmacc/Kenwood-TS-890s-Web-Console/releases/latest).
+2. Make it executable:
+   ```bash
+   chmod +x ts890s-webserver-linux-x64.AppImage
+   ```
+3. Run it:
+   ```bash
+   ./ts890s-webserver-linux-x64.AppImage
+   ```
+   The first run may take a few seconds while AppImage extracts the bundled
+   libraries.  A console window keeps the log; closing it stops the server.
+4. Open `http://localhost:8080` in a browser; enter radio details via the
+   Connect dialog.
+5. **Optional GUI launcher:** download **`ts890s-launcher-linux-x64`** from
+   the same release, `chmod +x`, and run.  Gives you persistent settings and
+   the ngrok button.  Requires the system Tk package
+   (`sudo apt install python3-tk` on Debian/Ubuntu).
+
+### Raspberry Pi 4 / 5 (64-bit OS) — recommended one-liner
+
+For the typical "Pi in the shack, always on" setup, a single command does the
+whole install: downloads the latest tarball, registers a systemd service so
+the server starts on boot, and installs a `ts890s-config` helper for changing
+settings later.
+
+```bash
+curl -fsSL https://github.com/lmacc/Kenwood-TS-890s-Web-Console/releases/latest/download/install-pi.sh | sudo bash
+```
+
+If you'd rather review the script before piping into `sudo bash`:
+
+```bash
+curl -fsSL https://github.com/lmacc/Kenwood-TS-890s-Web-Console/releases/latest/download/install-pi.sh -o install-pi.sh
+less install-pi.sh
+sudo bash install-pi.sh
+```
+
+After install:
+
+- The webserver is **running and enabled at boot** as a systemd service.
+- Reach it from any browser on the LAN at `http://<pi-ip>:8080`.
+- Change ports / view URLs / restart the service / follow the log:
+  ```bash
+  sudo ts890s-config
+  ```
+- Check service status:
+  ```bash
+  sudo systemctl status ts890s-webserver
+  ```
+- Follow the live log:
+  ```bash
+  sudo journalctl -u ts890s-webserver -f
+  ```
+- Uninstall:
+  ```bash
+  sudo /opt/ts890s-webserver/install-rpi.sh --uninstall
+  ```
+
+**32-bit Pi OS / older Pi 3 not supported** — there is no armhf build.  If
+you have a Pi 3, install 64-bit Raspberry Pi OS (released 2022+).
+
+#### Manual Pi install (advanced)
+
+If you'd rather not use the one-liner:
+
+1. Download **`ts890s-webserver-raspberry-pi-arm64.tar.gz`** from the
+   [latest release](https://github.com/lmacc/Kenwood-TS-890s-Web-Console/releases/latest).
+2. Extract:
+   ```bash
+   mkdir -p ~/ts890s && cd ~/ts890s
+   tar xzf ~/Downloads/ts890s-webserver-raspberry-pi-arm64.tar.gz
+   ```
+3. Install required Qt6 libraries (the Pi build uses the system Qt6):
+   ```bash
+   sudo apt-get update
+   sudo apt-get install -y qt6-base-dev qt6-websockets-dev qt6-multimedia-dev
+   ```
+4. Run interactively in a terminal:
+   ```bash
+   ./start.sh
+   ```
+   Or use the GUI launcher (requires `sudo apt install python3-tk` first):
+   ```bash
+   ./ts890s-launcher
+   ```
+5. To install as a systemd service later: `sudo ./install-rpi.sh`.
+
+---
+
+## First-time radio setup (all platforms)
+
+Before any of the above will reach your radio, the radio itself needs three
+things configured.  This is a one-time setup on the rig.
+
+### 1. Enable the built-in KNS server
+
+On the radio's front panel:
+
+1. Press **MENU**
+2. Scroll to the **KNS** section
+3. Find **"Built-in KNS Server"** — set to **ON**
+
+The radio's KNS screen will now display its current LAN IP address.  Note
+it down — you'll need it for the browser's Connect dialog.
+
+### 2. Add a KNS user
+
+Still in the KNS menu:
+
+1. Find **"KNS User Registration"**
+2. Add a user, e.g.:
+   - **User name:** `myuser` (anything you like)
+   - **Password:** any password
+   - **Permissions:** *Admin* (required for TX control — read-only doesn't
+     allow keying)
+
+### 3. Enable network standby (optional but recommended)
+
+Lets the radio respond to remote power-on requests over the LAN.  Otherwise
+the radio is fully off when you turn it off via the Web Console — the only
+way to power it back on is to walk up to the front panel.
+
+KNS menu → **Network Standby** → **ON**.
+
+### 4. (Optional) DATA-SEND audio source
+
+If you plan to use the **Web Console's mic** for TX (rather than a physical
+mic plugged into the front of the radio):
+
+Menu → DATA SEND audio source → **LAN**.
+
+The webserver also sets this automatically (`MS103` CAT command) once
+authenticated, so this step is usually unnecessary.
+
+---
+
+## Remote access from anywhere — Tailscale setup in detail
+
+This is the section to follow if you want to operate the radio from work,
+from a holiday, from your phone while in the supermarket — basically anywhere
+that's not on your home LAN — **without exposing anything to the public
+internet** and **without configuring port forwarding** on your router.
+
+### Why Tailscale and not [thing]?
+
+| Approach | Pros | Cons |
+|---|---|---|
+| **Port forwarding + dynamic DNS** | Old-school, no third party | Exposes your radio to the entire internet.  You'll need DDNS service. Plain HTTP means no microphone access in mobile browsers. |
+| **VPN to your home router** | Standard | Requires your router to support OpenVPN/WireGuard server.  Setup is per-router-model. |
+| **Cloudflare Tunnel** | Public URL, real HTTPS | Public URL = public attack surface.  Needs Cloudflare Access for auth. |
+| **Tailscale (this guide)** | Private, real HTTPS for free, no public surface, no port forwarding | Every device needs the Tailscale app installed once (one-off, ~3 min per device) |
+
+The amateur-radio use case has near-perfect fit with Tailscale: you almost
+always operate your own radio from your own devices, so the small friction of
+installing a client on each device is a price worth paying for zero public
+attack surface and zero router configuration.
+
+### Architecture recap
+
+```mermaid
+flowchart LR
+    subgraph "Your devices (anywhere)"
+        D1["Phone"]
+        D2["Laptop"]
+    end
+    subgraph "Tailscale Mesh"
+        TS["Tailscale"]
+    end
+    subgraph "Home"
+        S["PC/Pi running<br/>ts890s-webserver"]
+        R["TS-890S Radio"]
+    end
+    D1 --"https://radio-pi.tail-abc.ts.net"--> TS
+    D2 --"https://radio-pi.tail-abc.ts.net"--> TS
+    TS --"100.x.y.z (tailnet IP)"--> S
+    S --"LAN (Ethernet)"--> R
+```
+
+### Step-by-step
+
+#### A. On the PC or Pi that runs the webserver
+
+This machine (which I'll call the "host") must have Tailscale running so the
+tailnet sees it.  Then `tailscale serve` makes the webserver reachable from
+other tailnet devices over HTTPS.
+
+**A.1 Install Tailscale on the host**
+
+*On Raspberry Pi / Linux:*
+
+```bash
+curl -fsSL https://tailscale.com/install.sh | sh
+```
+
+*On Windows:*
+
+Download and run the installer from
+[tailscale.com/download/windows](https://tailscale.com/download/windows).
+
+*On macOS:*
+
+Either install from the Mac App Store, or `brew install --cask tailscale`.
+
+**A.2 Sign in**
+
+*Linux / Pi:*
+
+```bash
+sudo tailscale up
+```
+
+The terminal prints a URL.  Open it in a browser (any browser, anywhere) and
+sign in with whatever account you want — Google, Microsoft, GitHub, Apple,
+custom email.  This becomes the account that owns your *tailnet*.
+
+*Windows / macOS:*
+
+The installer launches Tailscale automatically.  Click the system-tray icon
+and sign in.
+
+**A.3 Confirm the host has joined**
+
+```bash
+tailscale status
+```
+
+You'll see something like:
+
+```
+100.91.42.17    radio-pi          you@example.com  linux   -
+```
+
+That `100.x.y.z` address is your host's **tailnet IP**.  The hostname
+(`radio-pi` in the example) gives you a friendlier DNS name via Tailscale's
+MagicDNS feature: `radio-pi.tail-abc123.ts.net`.
+
+To find the full MagicDNS name:
+
+```bash
+tailscale status --json | grep DNSName
+```
+
+**A.4 Provision an HTTPS certificate and start serving**
+
+This is the magic step.  Tailscale will request a real, browser-trusted HTTPS
+certificate for your `*.tail-XXXX.ts.net` name from Let's Encrypt, and proxy
+incoming HTTPS traffic to the local HTTP webserver.
+
+```bash
+sudo tailscale serve --bg --https=443 / http://localhost:8080
+sudo tailscale serve --bg --https=443 /ws http://localhost:8073
+```
+
+The first command reverse-proxies the web UI; the second covers the WebSocket
+endpoint that carries live state and audio.
+
+The first time you run these, Tailscale will spend 30–60 seconds requesting
+the certificate.  Subsequent runs are instant.
+
+**A.5 Confirm the serve config**
+
+```bash
+tailscale serve status
+```
+
+You should see your `https://` URL with the two path mappings.
+
+#### B. On every device you want to operate from
+
+**B.1 Install the Tailscale app**
+
+- **iPhone / iPad:** App Store — search "Tailscale"
+- **Android:** Play Store — search "Tailscale"
+- **Windows / macOS / Linux:** as above
+
+**B.2 Sign in with the same account** you used in step A.2.
+
+**B.3 Confirm the device is on the tailnet**
+
+The Tailscale app/tray icon shows a list of your devices.  Your host
+(`radio-pi`) should be visible.
+
+**B.4 Open the URL**
+
+In any browser:
+
+```
+https://radio-pi.tail-abc123.ts.net/
+```
+
+That's it.  The TLS cert is genuine, so microphone permissions work on
+phones.  Anyone not on your tailnet cannot reach this URL — it doesn't
+resolve outside the tailnet.
+
+### Tailscale notes
+
+- **Tailnet is free for personal use:** 3 users, 100 devices.  Plenty for a
+  single-operator home shack.
+- **No router config:** Tailscale uses NAT traversal and (if needed)
+  relay servers to make connections work behind even strict NAT or CGNAT.
+- **You can revoke a device** any time via the Tailscale admin console at
+  [login.tailscale.com](https://login.tailscale.com).  If your phone is
+  stolen, kick it off the tailnet — done.
+- **What about Tailscale's servers?** Tailscale only sees control-plane
+  metadata (which device is asking which device for a connection).  Actual
+  data is WireGuard-encrypted end-to-end and goes peer-to-peer; Tailscale's
+  servers never see your audio or commands.
+- **Tailscale Serve is the magic.**  Without it you can still reach the
+  webserver as `http://100.91.42.17:8080`, but you won't have HTTPS, so
+  the microphone won't work in mobile browsers.
+
+---
+
+## Mobile usage
+
+Once you're connected via the Tailscale HTTPS URL (so the browser allows
+microphone access), the UI on a phone gives you:
+
+- The bandscope and waterfall, full screen-width
+- Per-digit wheel/swipe tuning on both VFO A and VFO B
+- Stacked side panels (S-meter on top of the bandscope, filter widget below)
+- Horizontally-scrollable soft-keys
+- A **large floating PTT button** in the bottom-right corner — fixed
+  position so it's always reachable with your right thumb regardless of
+  what you scroll past on screen
+- The Connect dialog and the VFO/Split dialog both fit a phone screen
+  (single column on the narrowest devices)
+
+If you're on the LAN over plain HTTP, **microphone capture and speaker
+selection will not work** — that's a browser security restriction, not a
+limitation of this app.  Use Tailscale (or `localhost` from the PC running
+the server) for full mic support.
+
+---
+
+## Configuration / running multiple servers
+
+The defaults are HTTP **8080** / WebSocket **8073**.  You can change them
+in three places:
+
+- **Pi:** `sudo ts890s-config` → option 1 / 2 → enter new port → confirm restart.
+- **Windows launcher GUI:** the "Server Ports" panel.
+- **start scripts:** pass positional arguments:
+  ```bash
+  ./start.sh 8090 8083    # HTTP 8090, WS 8083
+  start.bat 8090 8083
+  ```
+
+The browser automatically discovers the right WebSocket port from the page
+it loaded.  This means you can run **two server instances** on the same PC
+(controlling two radios) with different port pairs — each browser tab finds
+its own radio.
+
+---
+
+## Troubleshooting
+
+### "Windows protected your PC" warning
+
+Binary is unsigned (paid code-signing certificates aren't economical for a
+free hobby project).  Click *More info* → *Run anyway*.  Windows will
+remember after the first run.
+
+### macOS "cannot be opened — unidentified developer"
+
+Right-click the binary → *Open* the first time.  Same reason as Windows.
+
+### No audio on phone
+
+Microphone access requires HTTPS or localhost.  Browse via your Tailscale
+URL (`https://...tail-XXX.ts.net`), not a raw IP / hostname over HTTP.
+
+### Connect dialog says "Connection refused"
+
+Three things to check on the radio:
+
+1. KNS menu → **Built-in KNS Server: ON**
+2. KNS menu → confirm the radio's IP matches what you typed in the dialog
+3. The radio is on and not in network-standby-only mode if you've not yet
+   sent it a wake-up.  Walk over and press the power button if in doubt.
+
+### Pi service won't start after reboot
+
+```bash
+sudo systemctl status ts890s-webserver
+sudo journalctl -u ts890s-webserver -n 50
+```
+
+Common causes: port already in use, radio config file unreadable, KNS user
+deleted/changed on the rig.
+
+### Bandscope is stuttering
+
+Probably a slow network link.  Lower the bandscope scope-speed isn't yet
+exposed in the UI — currently we run it at the radio's High cycle setting
+(~30 fps) which uses ~310 kbps.  On a weak 4G uplink this can be too much.
+[Open an issue](https://github.com/lmacc/Kenwood-TS-890s-Web-Console/issues)
+if you'd like a UI control for this.
+
+### Tailscale "no relay" / can't reach the host
+
+```bash
+tailscale netcheck     # on the device that can't connect
+```
+
+Confirms which relay region Tailscale is using.  If it shows "no relay
+servers reachable", your network is blocking UDP 41641 and you may need to
+allow it in your firewall.
+
+---
+
+## Licence and disclaimer
+
+Released under the **GNU General Public License v3.0** — see the [LICENSE](LICENSE)
+file for the full legal text.
+
+**No warranty.**  This software is supplied "as is", without warranty of any
+kind, express or implied.  The author shall not be liable for any claim,
+damages, or other liability arising from the use or inability to use the
+software — including, but not limited to: damage to your radio, computer,
+network equipment, antenna, premises, or the failure to make a contact, log
+a QSO, work a DX station, or comply with the terms of your amateur licence.
+
+By using this software you confirm you have read and accept the disclaimer at
+the top of this README.
+
+---
+
+## Source code
+
+The full source for the webserver, web UI, launchers, and CI pipeline lives
+in a separate private repository.  This repository
+(`Kenwood-TS-890s-Web-Console`) hosts only the **release binaries** and this
+README, so end-users can find downloads without wading through code.
+
+For feature requests, or bug reports please use the
+[issues](https://github.com/lmacc/Kenwood-TS-890s-Web-Console/issues) on this
+repository.
+
+---
+
+73 de **EI5GJB**
