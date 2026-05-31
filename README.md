@@ -426,15 +426,20 @@ helper instead** — `sudo ts890s-config` → option **8** (*"Set up Tailscale
 HTTPS proxy"*).  The helper reads your configured ports, runs both `tailscale
 serve` commands, and prints the URL to bookmark.
 
-Doing it by hand (any platform):
+Doing it by hand (any platform — Tailscale 1.50+ syntax):
 
 ```bash
-sudo tailscale serve --bg --https=443 / http://localhost:8080
-sudo tailscale serve --bg --https=443 /ws http://localhost:8073
+sudo tailscale serve --bg --https=443 --set-path=/   http://localhost:8080
+sudo tailscale serve --bg --https=443 --set-path=/ws http://localhost:8073
 ```
 
 The first command reverse-proxies the web UI; the second covers the WebSocket
 endpoint that carries live state and audio.
+
+(Older Tailscale versions used a positional path form
+`tailscale serve --bg --https=443 / http://localhost:8080`.  The helper
+falls back to that form automatically if the modern `--set-path` syntax
+isn't recognised by your Tailscale binary.)
 
 The first time you run these, Tailscale will spend 30–60 seconds requesting
 the certificate.  Subsequent runs are instant.
