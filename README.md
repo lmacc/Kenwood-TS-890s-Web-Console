@@ -505,6 +505,35 @@ resolve outside the tailnet.
 
 ---
 
+## Running multiple services on the same Pi
+
+The Pi installer ships an **interactive Tailscale Serve manager** —
+`sudo tailscale-mux` — that lets you stack other services on the same
+tailnet name as the radio webserver.  Useful when one Pi is hosting,
+say, the TS-890S webserver + the SPE amplifier remote + pi-hole +
+Home Assistant all at once.
+
+```bash
+sudo tailscale-mux
+```
+
+The menu shows your current Tailscale Serve config in plain English
+("HTTPS :443 → http://localhost:8080 — TS-890S Webserver"), and walks
+you through adding a new service:
+
+- Pick a preset (TS-890S / SPE Amp / pi-hole / Home Assistant / custom)
+- Or enter local HTTP + WS ports manually
+- Choose which HTTPS port on the tailnet to expose it on (the helper
+  suggests the next free one)
+
+Each service gets its own HTTPS port on your existing `*.tail-XXX.ts.net`
+name — same auto-provisioned Let's Encrypt cert, no new tunnel.
+Bookmark each URL separately.  Standalone download of the helper (no
+TS-890S install required) is at the [latest release](https://github.com/lmacc/Kenwood-TS-890s-Web-Console/releases/latest)
+as `tailscale-mux`.
+
+---
+
 ## Mobile usage
 
 Once you're connected via the Tailscale HTTPS URL (so the browser allows
