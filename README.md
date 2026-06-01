@@ -505,32 +505,247 @@ resolve outside the tailnet.
 
 ---
 
-## Running multiple services on the same Pi
+## Multiple services on one Pi — the `tailscale-mux` helper
 
-The Pi installer ships an **interactive Tailscale Serve manager** —
-`sudo tailscale-mux` — that lets you stack other services on the same
-tailnet name as the radio webserver.  Useful when one Pi is hosting,
-say, the TS-890S webserver + the SPE amplifier remote + pi-hole +
-Home Assistant all at once.
+A typical "shack Pi" doesn't stay a one-job machine for long.  Once the
+TS-890S webserver is up, you'll often want the same Pi to host:
+
+- **The TS-890S webserver** (this project)
+- **An amplifier remote** like the [SPE 1K-FA / 1.3K-FA web console](https://github.com/lmacc/SPE-Expert-Amplifier-Remote-Webserver)
+- **pi-hole** (DNS-level ad blocking) — its admin page is web-based
+- **Home Assistant** for home automation
+- A locally-running **ESPHome** dashboard or **Node-RED** flow
+- A **Grafana** dashboard for your station logs
+
+Tailscale gives every device on your tailnet *one* MagicDNS name
+(`<your-pi-name>.tail-XXXX.ts.net`).  By default, `tailscale serve` only
+proxies one mount at one HTTPS port.  To expose several services
+cleanly, each gets **its own HTTPS port** on the same name.
+
+`tailscale-mux` is the helper that manages this for you — installed
+alongside the webserver by the Pi one-line installer, and downloadable
+standalone for non-radio Pi users.
+
+### Visual overview
+
+```mermaid
+flowchart LR
+    subgraph Phone["📱 Your phone / laptop (anywhere)"]
+        B1["Bookmark: radio<br/>https://shack-pi.tail-abc.ts.net/"]
+        B2["Bookmark: amp<br/>https://shack-pi.tail-abc.ts.net:8443/"]
+        B3["Bookmark: pi-hole<br/>https://shack-pi.tail-abc.ts.net:8444/"]
+        B4["Bookmark: Home Assistant<br/>https://shack-pi.tail-abc.ts.net:8445/"]
+    end
+
+    subgraph Net["🔒 Tailnet (WireGuard, end-to-end encrypted)"]
+        TS["Tailscale<br/>(single Let's Encrypt cert<br/>covers ALL ports on this name)"]
+    end
+
+    subgraph Pi["🏠 Raspberry Pi in the shack"]
+        TM["tailscale serve config<br/>(managed by tailscale-mux)"]
+        S1["TS-890S webserver<br/>localhost:8080 + 8073"]
+        S2["SPE amp daemon<br/>localhost:8081 + 8889"]
+        S3["pi-hole (lighttpd)<br/>localhost:80"]
+        S4["Home Assistant<br/>localhost:8123"]
+    end
+
+    B1 -- "wss://...:443/ws" --> TS
+    B2 -- "wss://...:8443/ws" --> TS
+    B3 -- "https://...:8444/" --> TS
+    B4 -- "wss://...:8445/" --> TS
+
+    TS --":443"  --> TM
+    TS --":8443" --> TM
+    TS --":8444" --> TM
+    TS --":8445" --> TM
+
+    TM --> S1
+    TM --> S2
+    TM --> S3
+    TM --> S4
+```
+
+The key things to notice in the diagram:
+
+1. **One tailnet name, many ports.**  Every service is reachable through
+   the same `<pi>.tail-XXXX.ts.net` hostname — what changes is the port.
+2. **One certificate covers them all.**  Tailscale provisions a single
+   Let's Encrypt cert for your tailnet name on first use.  Adding the
+   2nd, 3rd, 4th service doesn't request a new cert — they all share
+   it because they're the same hostname.
+3. **No port forwarding on your router.**  Tailscale uses WireGuard for
+   transport; nothing inbound on your home router.
+4. **No public attack surface.**  Devices that aren't on your tailnet
+   simply cannot resolve `*.tail-XXXX.ts.net` at all.
+
+### Running the helper
 
 ```bash
 sudo tailscale-mux
 ```
 
-The menu shows your current Tailscale Serve config in plain English
-("HTTPS :443 → http://localhost:8080 — TS-890S Webserver"), and walks
-you through adding a new service:
+The opening screen shows what's currently configured:
 
-- Pick a preset (TS-890S / SPE Amp / pi-hole / Home Assistant / custom)
-- Or enter local HTTP + WS ports manually
-- Choose which HTTPS port on the tailnet to expose it on (the helper
-  suggests the next free one)
+```
+╭────────────────────────────────────────────────────────────────╮
+│  Tailscale Mux — multi-service HTTPS multiplexer               │
+╰────────────────────────────────────────────────────────────────╯
 
-Each service gets its own HTTPS port on your existing `*.tail-XXX.ts.net`
-name — same auto-provisioned Let's Encrypt cert, no new tunnel.
-Bookmark each URL separately.  Standalone download of the helper (no
-TS-890S install required) is at the [latest release](https://github.com/lmacc/Kenwood-TS-890s-Web-Console/releases/latest)
-as `tailscale-mux`.
+  Tailnet name:  shack-pi.tail-abc123.ts.net
+  Logged in as:  you@example.com
+
+  ─ Configured services ─────────────────────────────────────────
+
+    HTTPS :443    TS-890S Webserver
+       /        →  http://localhost:8080
+       /ws      →  http://localhost:8073
+
+    HTTPS :8443   SPE Expert Amplifier
+       /        →  http://localhost:8081
+       /ws      →  http://localhost:8889
+
+    HTTPS :8444   pi-hole admin
+       /        →  http://localhost:80
+
+  ─ Actions ─────────────────────────────────────────────────────
+  1) Add a service
+  2) Remove a service
+  3) Show bookmark URLs (+ QR codes if qrencode installed)
+  4) Reset — wipe ALL Tailscale Serve config on this machine
+  q) Quit
+
+Choose:
+```
+
+### Adding a service — step-by-step
+
+Take a worked example: you have the TS-890S webserver already running
+on `:8080/:8073` and you've just installed the **SPE Expert Amplifier
+remote** on the same Pi at the (non-default) ports `8081/8889`.
+
+1. **`sudo tailscale-mux`** opens the menu.
+2. Pick **1) Add a service**.
+3. Pick **preset 2 — SPE Expert Amplifier**.  The helper fills in
+   `HTTP 8081 / WS 8889` for you.
+4. It suggests the next free HTTPS port — likely `8443` since `:443` is
+   already taken by the radio.  Accept, or type a different port.
+5. Confirm `Y` at the summary prompt.
+6. The helper runs:
+   ```
+   tailscale serve --bg --https=8443 --set-path=/   http://localhost:8081
+   tailscale serve --bg --https=8443 --set-path=/ws http://localhost:8889
+   ```
+7. Done.  Bookmark `https://shack-pi.tail-abc123.ts.net:8443/` on your
+   phone.
+
+The whole exchange is under 30 seconds — no editing systemd unit
+files, no typing the magic-DNS name, no remembering `--set-path`
+syntax.
+
+### Built-in presets
+
+When you pick "Add a service", the wizard offers five paths:
+
+| # | Preset | Fills in HTTP | Fills in WS | Notes |
+|---|---|---|---|---|
+| 1 | **TS-890S Webserver** | 8080 | 8073 | Same as `ts890s-config` option 8 |
+| 2 | **SPE Expert Amplifier** | 8081 | 8889 | Requires the SPE daemon to be moved off its default `:8080` (which clashes with TS-890S) by setting `SPE_HTTP_PORT=8081` in its systemd unit |
+| 3 | **pi-hole admin** | 80 | (none) | pi-hole doesn't use WebSockets |
+| 4 | **Home Assistant** | 8123 | 8123 | HA serves HTTP + WS on the same port |
+| 5 | **Custom** | — | — | Type whatever local ports you need, with optional WS |
+
+Each preset just pre-fills the wizard fields — you can still edit them
+before confirming, including the Tailscale-side HTTPS port.
+
+### One certificate, many ports
+
+Tailscale's HTTPS-cert provisioning is **per-device-name**, not per-port.
+The very first time `tailscale serve --https=<any-port>` runs on your
+Pi, Tailscale's coordination server requests a Let's Encrypt cert for
+`<your-pi-name>.tail-XXXX.ts.net`.  That takes 30–60 seconds.  After
+that:
+
+- Adding a 2nd service on a different port: **instant** (cert reused)
+- Renewing the cert (~30 days before expiry): **automatic in the background**
+- You re-running `ts890s-config` option 8 or `tailscale-mux` add: **no new cert request**
+
+You'll only ever see the cert-provisioning wait once per Pi setup.
+
+### QR codes for phones (optional)
+
+Option **3) Show bookmark URLs** prints each URL — and if you have
+`qrencode` installed, it also renders an ANSI256-colour QR code right
+in the terminal that your phone camera can scan:
+
+```bash
+sudo apt install qrencode
+```
+
+Then `sudo tailscale-mux` → option 3 shows something like:
+
+```
+  Bookmark URLs:
+    https://shack-pi.tail-abc123.ts.net/
+    [ANSI QR code here]
+
+    https://shack-pi.tail-abc123.ts.net:8443/
+    [ANSI QR code here]
+```
+
+Open your phone camera, point at the QR, get the bookmark instantly.
+
+### Where the helper stores its state
+
+| Path | What's there |
+|---|---|
+| `/etc/tailscale-mux/services.conf` | Pipe-delimited list of services (port, path, target, friendly name) — used only for the friendly names in the menu display |
+| Tailscale's own state | The actual routing config — `tailscale serve` persists this across reboots automatically |
+
+The two are kept in step on every add / remove.  If you ever manually
+run `tailscale serve` outside the helper, the helper's listing won't
+know the friendly name of that mount but will still display it.
+
+### Standalone install (no TS-890S webserver)
+
+If you just want the helper without installing the radio webserver:
+
+```bash
+sudo curl -fsSL https://github.com/lmacc/Kenwood-TS-890s-Web-Console/releases/latest/download/tailscale-mux \
+  -o /usr/local/bin/tailscale-mux
+sudo chmod +x /usr/local/bin/tailscale-mux
+sudo tailscale-mux
+```
+
+The script is pure bash + the `tailscale` CLI.  No Python, no other
+dependencies.  Works on any Linux that has systemd and Tailscale
+installed (so any Pi running modern Raspberry Pi OS).
+
+### Troubleshooting
+
+**"Tailscale isn't installed on this Pi"** — Install Tailscale first
+([tailscale.com/download](https://tailscale.com/download)), then
+`sudo tailscale up` to sign in.
+
+**"Tailscale is installed but not logged in"** — Run `sudo tailscale up`
+and follow the URL it prints.
+
+**Phone says "this connection is not secure"** — You're hitting the
+plain `http://` LAN address.  Use the `https://*.tail-XXXX.ts.net`
+URL `tailscale-mux` printed for you instead.
+
+**HTTPS port :8443 / :8444 / etc. won't load** — First-time cert
+request on a *new* port can take up to a minute.  Wait, then retry.
+
+**"HTTPS port X is already in use by another service"** — Pick a
+different one (`tailscale-mux` will suggest the next free).  If you
+genuinely want to replace the existing service, remove it first
+(menu option 2).
+
+**Helper's list disagrees with `tailscale serve status`** — The list
+shows only mounts the helper knows about (friendly names).  Manual
+`tailscale serve` calls outside the helper still work but won't get
+displayed by name.  Option **4) Reset** wipes everything cleanly so
+you can start fresh.
 
 ---
 
