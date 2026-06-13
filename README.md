@@ -2,7 +2,6 @@
 
 [![Build status](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Flmacc%2FKenwood-TS-890s-Web-Console%2Fmain%2F.github%2Fci-badge.json)](https://github.com/lmacc/Kenwood-TS-890s-Web-Console/releases)
 [![Latest release](https://img.shields.io/github/v/release/lmacc/Kenwood-TS-890s-Web-Console?sort=semver&display_name=tag)](https://github.com/lmacc/Kenwood-TS-890s-Web-Console/releases/latest)
-[![Total downloads](https://img.shields.io/github/downloads/lmacc/Kenwood-TS-890s-Web-Console/total)](https://github.com/lmacc/Kenwood-TS-890s-Web-Console/releases)
 [![Licence: GPL-3.0](https://img.shields.io/badge/licence-GPL--3.0-blue)](LICENSE)
 ![Platforms](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS%20%7C%20Raspberry%20Pi-lightgrey)
 
