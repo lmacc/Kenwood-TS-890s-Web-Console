@@ -99,9 +99,68 @@ flowchart TD
   function.  Mic and speakers chosen from any device the browser supports.
 - Band buttons that recall the radio's stored mode-per-band (BU command).
 - Power on/off toggle (PS command) with network-standby wake-up.
+- **Built-in multi-mode signal decoder** — CW, RTTY, PSK31, WEFAX, FT8 and
+  FT4 — decoded (and, for CW/RTTY/FT8/FT4, transmitted) right in the browser,
+  with no extra software (see [Signal decoder](#signal-decoder) below).
 - Mobile-responsive UI with a big floating-action PTT button.
 - Server-side persistent radio profile — connect once from any device,
   and from then on every other browser walks in to an already-connected rig.
+
+---
+
+## Signal decoder
+
+Open the **Decoder** panel and pick a mode from the toolbar.  Everything runs
+on the radio's received audio — no virtual audio cables, no WSJT-X install,
+nothing to set up.
+
+| Mode | Receive | Transmit |
+|---|---|---|
+| **CW** | Multi-signal skimmer with rig control | Keyboard / macros (the radio's keyer) |
+| **RTTY** | Baudot, 45 / 50 / 75 / 100 baud | AFSK over the radio |
+| **PSK31** | BPSK Varicode | — |
+| **WEFAX** | Greyscale weather-fax image | — |
+| **FT8 / FT4** | Full WSJT-X-style decode | WSJT-X-style transmit |
+
+### CW — a skimmer with rig control
+
+<p align="center"><img src="docs/CW-panel.png" alt="CW decoder panel" width="840"></p>
+
+The CW decoder copies the strongest signal in the passband and turns the panel
+into a CW-Skimmer-style operating position:
+
+- **Click a signal** on the waterfall — or any decoded callsign — and the
+  radio **QSYs** so that signal lands exactly on your pitch (the red line), in
+  the radio's own narrow filter.
+- **Mouse-wheel fine tuning** over the waterfall with a selectable step
+  (1 / 5 / 10 / 25 / 50 / 100 Hz), and a **zero-beat** button that drops the
+  nearest carrier precisely onto the pitch.
+- A **zoom strip** showing ±150 Hz around the pitch for visual tuning, plus
+  **band** and **filter-width** selectors that drive the radio directly.
+- **Exchange macros** (CQ / ANS / RST / TU 73 / AGN) and **live keyboard
+  keying** straight into the radio's keyer.
+- A **timestamped scrollback log**, a one-click **audio recorder** (downloads
+  a WAV), and **select-to-grab** — highlight any text to set it as the DX call
+  when auto-detection misses one.
+
+### FT8 / FT4
+
+<p align="center">
+  <img src="docs/FT8-panel.png" alt="FT8 decoder panel" width="410">
+  <img src="docs/FT4-Panel.png" alt="FT4 decoder panel" width="410">
+</p>
+
+A WSJT-X-style waterfall with Band-Activity and Rx-Frequency logs, standard
+message generation, auto-sequencing, and full transmit — all decoded and
+encoded server-side, so nothing extra is installed on the operating machine.
+
+### Logging — ADIF + Log4OM
+
+Every mode has a **Log QSO** dialog that records contacts to an ADIF log you
+can export from the browser, and can forward each one to a logging program
+(Log4OM, N1MM+, DXKeeper, …) over UDP as it is logged.  Set your **callsign,
+grid, name and QTH** once under **⚙ Settings → My Station** and every mode —
+messages, macros, and the log — uses them automatically.
 
 ---
 
