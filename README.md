@@ -116,18 +116,18 @@ nothing to set up.
 
 | Mode | Receive | Transmit |
 |---|---|---|
-| **CW** | Multi-signal skimmer with rig control | Keyboard / macros (the radio's keyer) |
+| **CW** | Multi-signal decoder with rig control | Keyboard / macros (the radio's keyer) |
 | **RTTY** | Baudot, 45 / 50 / 75 / 100 baud | AFSK over the radio |
 | **PSK31** | BPSK Varicode | — |
 | **WEFAX** | Greyscale weather-fax image | — |
 | **FT8 / FT4** | Full WSJT-X-style decode | WSJT-X-style transmit |
 
-### CW — a skimmer with rig control
+### CW — multi-signal decode with rig control
 
 <p align="center"><img src="docs/CW-panel.png" alt="CW decoder panel" width="840"></p>
 
 The CW decoder copies the strongest signal in the passband and turns the panel
-into a CW-Skimmer-style operating position:
+into a multi-signal operating position:
 
 - **Click a signal** on the waterfall — or any decoded callsign — and the
   radio **QSYs** so that signal lands exactly on your pitch (the red line), in
