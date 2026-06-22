@@ -107,6 +107,43 @@ flowchart TD
 
 ---
 
+## Native desktop app (Windows)
+
+Alongside the browser UI there's a **native desktop application** (Qt/C++) that
+talks to the radio directly over the LAN — the same bandscope, S-meter, filter
+widgets and RX/TX audio in a standalone window, no browser required.
+
+![TS-890S desktop app](docs/ts890s-mainwindow.png)
+
+It carries a substantially expanded **multi-mode signal decoder** that drives the
+radio's own main bandscope (no separate waterfall):
+
+- **CW** — multi-signal decoder with a timestamped, scrollable copy history.
+  Recognised CW acronyms (CQ, DE, RST, 73, QSL…) are highlighted, and every
+  decoded callsign is resolved to its **country, CQ zone and ITU zone** from a
+  built-in prefix table. Hovering a call can also show the **operator's name**
+  via an optional QRZ.com lookup. **Double-click a callsign** to load it as the
+  DX call.
+- **RTTY / PSK31** — Baudot RTTY (45–100 baud) and BPSK31, with the same
+  callsign / country / zone annotation.
+- **FT8 / FT4** — a WSJT-X-style Band-Activity / Rx-Frequency log with standard
+  message generation, auto-sequencing and transmit; while decoding, the main
+  bandscope zooms to 5 kHz and shows green **Rx** / red **Tx** markers.
+- **DX panel** — a running list of every callsign heard in any mode with its
+  country, CQ / ITU zone and (with QRZ) operator name. A layered filter —
+  proper callsign grammar, an *allocated* prefix, and repetition / DE-CQ
+  context, plus FT8's CRC — keeps garbled copy from masquerading as real spots.
+
+The window also adds faceplate metering, **band-stacking** presets, a selectable
+tuning **STEP**, mode-aware IF-filter (width / shift) controls, AGC and separate
+**ANT / PRE / ATT** buttons, and shares the same ADIF + UDP logging and
+**My Station** identity used across every mode.
+
+> The desktop app is currently built from source; the packaged downloads below
+> are the webserver.
+
+---
+
 ## Signal decoder
 
 Open the **Decoder** panel and pick a mode from the toolbar.  Everything runs
