@@ -139,8 +139,12 @@ tuning **STEP**, mode-aware IF-filter (width / shift) controls, AGC and separate
 **ANT / PRE / ATT** buttons, and shares the same ADIF + UDP logging and
 **My Station** identity used across every mode.
 
-> The desktop app is currently built from source; the packaged downloads below
-> are the webserver.
+> **Download:** the desktop app ships in every release alongside the webserver —
+> **`ts890s-desktop-windows-x64.zip`** (extract, run `890qt.exe`),
+> **`ts890s-desktop-linux-x64.AppImage`** (`chmod +x`, then run), and
+> **`ts890s-desktop-macos.zip`** (unzip `890qt.app`, right-click → *Open* the
+> first time). Grab them from the
+> [latest release](https://github.com/lmacc/Kenwood-TS-890s-Web-Console/releases/latest).
 
 ---
 
