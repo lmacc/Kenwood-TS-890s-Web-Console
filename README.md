@@ -118,7 +118,7 @@ widgets and RX/TX audio in a standalone window, no browser required.
 It carries a substantially expanded **multi-mode signal decoder** that drives the
 radio's own main bandscope (no separate waterfall):
 
-- **CW** — multi-signal decoder with a timestamped, scrollable copy history.
+- **CW** — decoder with a timestamped, scrollable copy history.
   Recognised CW acronyms (CQ, DE, RST, 73, QSL…) are highlighted, and every
   decoded callsign is resolved to its **country, CQ zone and ITU zone** from a
   built-in prefix table. Hovering a call can also show the **operator's name**
@@ -156,18 +156,18 @@ nothing to set up.
 
 | Mode | Receive | Transmit |
 |---|---|---|
-| **CW** | Multi-signal decoder with rig control | Keyboard / macros (the radio's keyer) |
+| **CW** | Decoder with rig control | Keyboard / macros (the radio's keyer) |
 | **RTTY** | Baudot, 45 / 50 / 75 / 100 baud | AFSK over the radio |
 | **PSK31** | BPSK Varicode | — |
 | **WEFAX** | Greyscale weather-fax image | — |
 | **FT8 / FT4** | Full WSJT-X-style decode | WSJT-X-style transmit |
 
-### CW — multi-signal decode with rig control
+### CW — decode with rig control
 
 <p align="center"><img src="docs/CW-panel.png" alt="CW decoder panel" width="840"></p>
 
 The CW decoder copies the strongest signal in the passband and turns the panel
-into a multi-signal operating position:
+into an operating position:
 
 - **Click a signal** on the waterfall — or any decoded callsign — and the
   radio **QSYs** so that signal lands exactly on your pitch (the red line), in
