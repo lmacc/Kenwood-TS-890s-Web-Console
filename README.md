@@ -208,36 +208,44 @@ messages, macros, and the log — uses them automatically.
 
 ### Windows 10 / 11 (x64)
 
+**Easiest — the one-click installer:**
+
 1. Go to the [latest release](https://github.com/lmacc/Kenwood-TS-890s-Web-Console/releases/latest)
-   on this page and download **`ts890s-webserver-windows-x64.zip`**.
-2. Extract the ZIP anywhere — for example `C:\Users\YourName\Documents\TS890S-Webserver\`.
-   Right-click → *Extract All…* → choose a folder → Extract.
-3. Open the extracted folder.  You'll see:
-   - `890-server.exe` — the actual webserver
-   - `ts890s-launcher.exe` — a GUI launcher (recommended for first-time setup)
-   - `start.bat` — a bare console launcher
-   - `web\` — the browser UI files
-   - a number of `Qt6*.dll` files and a `platforms\` subfolder (the Qt runtime)
-4. Choose one of:
-   - **GUI launcher (recommended):** double-click **`ts890s-launcher.exe`**.
-     A dark settings window opens.  Fill in your radio's IP address (visible
-     on the radio's KNS menu screen), KNS username, KNS password, tick
-     "Admin" for TX control, click **Start Server**.  The launcher remembers
-     your settings between runs.
-   - **Console quick-launch:** double-click **`start.bat`**.  A black command
-     window appears with log output, and your default browser opens to
-     `http://localhost:8080`.  Enter the radio's IP into the on-screen
-     Connect dialog the first time.
+   on this page and download **`ts890s-console-setup.exe`**.
+2. Run it.  First time only, Windows SmartScreen shows *"Windows protected
+   your PC"* — click *More info* → *Run anyway* (the installer isn't
+   code-signed; certificates cost $200-500/year, not realistic for a hobby
+   project).  The installer adds Start-menu shortcuts, an optional desktop
+   icon, and can add a Windows Firewall rule so other devices on your network
+   can reach the page.
+3. Launch **TS-890S Web Console** from the Start menu.
+   - **The first launch opens a Settings window.**  Set the web-page port
+     (leave it at `8080` unless it clashes with something), and — if you like —
+     fill in your radio's IP address (shown on the radio's KNS menu screen),
+     KNS username, KNS password, and tick *Admin* for transmit control.  A help
+     panel in that window lists exactly what to switch on at the radio
+     (KNS + built-in VoIP).  Click **OK**.
+   - **After that**, launching just shows a small **control window**: the exact
+     URLs to open the console (on this PC and from other devices), plus
+     **Settings** and **Stop** buttons.  Close the window and it keeps running
+     in the system tray — right-click the tray icon for *Open* / *Settings* /
+     *Quit*.  It won't ask for settings again unless you press **Settings** or a
+     port is already in use.
 
-   First time only: Windows SmartScreen will show *"Windows protected your
-   PC"*.  Click *More info* → *Run anyway*.  This is because the binary is
-   not code-signed (signing certificates cost $200-500/year — not realistic
-   for a hobby project).
+**Alternative — the portable ZIP (no install):**
 
-5. On the same PC: open `http://localhost:8080` in any browser if it doesn't
-   open automatically.
-6. From another device on the same LAN: open `http://<your-pc-ip>:8080`
-   (find the PC's IP with `ipconfig` in a Command Prompt).
+1. Download **`ts890s-webserver-windows-x64.zip`** and extract it anywhere
+   (right-click → *Extract All…*).
+2. Double-click **`890-server.exe`** — it opens the same Settings/control
+   window described above.  (`ts890s-launcher.exe` and `start.bat` are also
+   included for the older launcher / bare-console workflows.)
+
+Either way:
+
+- On the same PC, open `http://localhost:8080` in any browser if it doesn't
+  open automatically.
+- From another device on the same LAN, open `http://<your-pc-ip>:8080`
+  (find the PC's IP with `ipconfig` in a Command Prompt).
 
 To use the radio from anywhere — phone, work laptop, holiday flat — install
 **Tailscale** as well (see the Tailscale section below).
