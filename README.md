@@ -10,7 +10,7 @@ transceiver.  Run a small native server next to (or on) the radio; control the
 rig from any phone, tablet, or computer with a web browser — over the LAN, or
 from anywhere in the world via Tailscale.
 
-![TS-890S Web Console screenshot](docs/screenshot.png)
+![TS-890S Web Console screenshot](docs/main_desktop.png)
 
 ---
 
@@ -102,8 +102,44 @@ flowchart TD
   FT4 — decoded (and, for CW/RTTY/FT8/FT4, transmitted) right in the browser,
   with no extra software (see [Signal decoder](#signal-decoder) below).
 - Mobile-responsive UI with a big floating-action PTT button.
+- **FFT audio analyzer** — a pop-out RX/TX frequency-analysis window with
+  windowing, log/linear axis, smoothing, averaging, multi-trace compare,
+  measurement markers, −6 dB bandwidth and CSV/PNG export (new in v0.7.0).
+- **RX / TX graphic equalizer** and a **server-side colour/theme editor** whose
+  palette follows the radio across ports and devices (new in v0.7.0).
 - Server-side persistent radio profile — connect once from any device,
   and from then on every other browser walks in to an already-connected rig.
+
+---
+
+## New in v0.7.0
+
+This release redesigns the instrument face and adds three operating tools, plus
+a live space-weather (SFI / A / K) readout in the header.
+
+**FFT audio analyzer** — a pop-out **Frequency Analysis** window for the receive
+*or* transmit audio: selectable FFT size (up to 4096), Hann / Hamming / Blackman
+windows, log or linear axis, DC-block, fractional-octave smoothing, averaging,
+peak-hold, **multi-trace compare**, auto-fit dB, click-to-drop **measurement
+markers** with a Δ frequency / dB readout, **−6 dB bandwidth**, and CSV / PNG
+export.  The **TX** side analyses the radio's own **TX-monitor** audio, so you
+can watch your transmit spectrum straight from the radio's mic — no browser
+microphone required.
+
+![FFT audio analyzer](docs/FFT_window.png)
+
+**RX / TX graphic equalizer** — an 18-band graphic EQ (0–5.1 kHz, +6 … −24 dB)
+for both chains.  Edits write to the radio's **User** presets live; the built-in
+presets stay read-only.
+
+![RX / TX equalizer](docs/RX_TX_eq.png)
+
+**Colour & theme customization** — a full palette editor (every panel, button,
+text, frequency-display and bandscope/waterfall colour, per theme, applied live)
+plus a waterfall **hue** control.  The palette is stored **server-side**, so your
+colours follow the radio across ports and across every device that opens it.
+
+![Colour theme editor](docs/Colour_picker.png)
 
 ---
 
@@ -164,7 +200,7 @@ nothing to set up.
 
 ### CW — decode with rig control
 
-<p align="center"><img src="docs/CW-panel.png" alt="CW decoder panel" width="840"></p>
+<p align="center"><img src="docs/CW_decoder.png" alt="CW decoder panel" width="840"></p>
 
 The CW decoder copies the strongest signal in the passband and turns the panel
 into an operating position:
@@ -186,8 +222,8 @@ into an operating position:
 ### FT8 / FT4
 
 <p align="center">
-  <img src="docs/FT8-panel.png" alt="FT8 decoder panel" width="410">
-  <img src="docs/FT4-Panel.png" alt="FT4 decoder panel" width="410">
+  <img src="docs/FT8_decoder.png" alt="FT8 decoder panel" width="410">
+  <img src="docs/FT4_decoder.png" alt="FT4 decoder panel" width="410">
 </p>
 
 A WSJT-X-style waterfall with Band-Activity and Rx-Frequency logs, standard
