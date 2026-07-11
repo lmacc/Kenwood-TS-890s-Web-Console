@@ -112,19 +112,26 @@ flowchart TD
 
 ---
 
-## New in v0.7.0
+## New in v0.8.0
 
-This release redesigns the instrument face and adds three operating tools, plus
-a live space-weather (SFI / A / K) readout in the header.
+The redesigned instrument face gains three operating tools — each grown into a
+full measurement / customization suite — plus a live space-weather (SFI / A / K)
+readout in the header.
 
 **FFT audio analyzer** — a pop-out **Frequency Analysis** window for the receive
-*or* transmit audio: selectable FFT size (up to 4096), Hann / Hamming / Blackman
+*or* transmit audio: selectable FFT size (up to 8192), Hann / Hamming / Blackman
 windows, log or linear axis, DC-block, fractional-octave smoothing, averaging,
-peak-hold, **multi-trace compare**, auto-fit dB, click-to-drop **measurement
-markers** with a Δ frequency / dB readout, **−6 dB bandwidth**, and CSV / PNG
-export.  The **TX** side analyses the radio's own **TX-monitor** audio, so you
-can watch your transmit spectrum straight from the radio's mic — no browser
-microphone required.
+peak-hold and min-hold.  **Harmonic analysis** drops 2f…9f markers on a clicked
+fundamental with a live **THD / THD+N / SNR** readout, alongside a **top-5 peak
+table** with dB-above-noise-floor.  **Multi-trace compare** holds up to four
+captures (save/load as JSON reference files) and a **Δ-from-hold** mode subtracts
+one from the live curve — a flat 0 dB line means identical response, perfect for
+before/after EQ.  A scrolling **spectrogram strip** exposes intermittent
+artifacts, **passband shading** shows the radio's actual LC–HC window, and up to
+eight **labelled markers**, **drag-to-measure band power**, **−6 dB bandwidth**
+and **CSV / PNG export** round out the measurement set.  The **TX** side analyses
+the radio's own **TX-monitor** audio, so you can watch your transmit spectrum
+straight from the radio's mic — no browser microphone required.
 
 ![FFT audio analyzer](docs/FFT_window.png)
 
@@ -135,9 +142,19 @@ presets stay read-only.
 ![RX / TX equalizer](docs/RX_TX_eq.png)
 
 **Colour & theme customization** — a full palette editor (every panel, button,
-text, frequency-display and bandscope/waterfall colour, per theme, applied live)
-plus a waterfall **hue** control.  The palette is stored **server-side**, so your
-colours follow the radio across ports and across every device that opens it.
+text, frequency-display, knob-recess and bandscope/waterfall colour, per theme,
+applied live) with **factory presets** (Kenwood amber, Icom blue, **red night**,
+high contrast, daylight) behind a 10-second **try/revert safety net**, and a
+**night auto** mode that switches to the red-night palette between sunset and
+sunrise computed from your grid locator.  **One-colour theming** derives a whole
+matching palette from a single accent; master **hue / saturation / brightness**
+sliders shift the entire theme at once; every background surface takes an
+optional **two-colour gradient**.  A **pick-element** mode jumps from any control
+straight to its colour row, each swatch has a **hex field** and screen
+**eyedropper**, and multi-step **undo**, palette **export/import** and a live
+**WCAG contrast checker** keep experiments safe.  The palette is stored
+**server-side**, so your colours follow the radio across ports and across every
+device that opens it.
 
 ![Colour theme editor](docs/Colour_picker.png)
 
